@@ -3,7 +3,7 @@ import { BALL, LAYOUT } from "../src/config";
 import { LAUNCH_POS } from "../src/game/layout";
 import { hasCorrectBall } from "../src/game/balls";
 import { Game } from "../src/game/game";
-import { defeatScore } from "../src/game/scoring";
+import { comboMultiplier, defeatScore } from "../src/game/scoring";
 
 function run(game: Game, seconds: number, dt = 1 / 60) {
   for (let t = 0; t < seconds; t += dt) game.update(dt);
@@ -255,6 +255,47 @@ describe("pause", () => {
     expect(g.pause()).toBe(false);
     g.quit();
     expect(g.phase).toBe("title");
+  });
+});
+
+describe("combo bonus", () => {
+  it("倍率は 1 回目 ×1.0 から 0.1 ずつ上がり、×2.0 で止まる", () => {
+    expect(comboMultiplier(1)).toBe(1);
+    expect(comboMultiplier(2)).toBe(1.1);
+    expect(comboMultiplier(5)).toBe(1.4);
+    expect(comboMultiplier(11)).toBe(2);
+    expect(comboMultiplier(50)).toBe(2);
+  });
+
+  it("続けて当てると数え上がって得点が増え、ハズレで 0 に戻る", () => {
+    const g = new Game();
+    const gained: number[] = [];
+    let last = 0;
+    g.startNewGame();
+    for (let i = 0; i < 3; i++) {
+      while (g.enemies.length === 0) g.update(1 / 60);
+      // 同じ高さで倒して比べられるよう、敵を同じ位置に置く
+      g.enemies[0].y = 100;
+      g.throwBall(correctSlot(g));
+      while (g.flying) g.update(1 / 60);
+      gained.push(g.score - last);
+      last = g.score;
+    }
+    expect(g.streak).toBe(3);
+    expect(gained[2]).toBeGreaterThan(gained[0]);
+
+    while (g.enemies.length === 0) g.update(1 / 60);
+    const answers = new Set(g.enemies.map((e) => e.problem.answer));
+    g.throwBall(g.stock.findIndex((v) => v !== null && !answers.has(v)));
+    while (g.flying) g.update(1 / 60);
+    expect(g.streak).toBe(0);
+  });
+
+  it("新しいゲームで 0 に戻る", () => {
+    const g = new Game();
+    g.streak = 7;
+    g.startNewGame();
+    expect(g.streak).toBe(0);
   });
 });
 

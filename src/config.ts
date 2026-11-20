@@ -68,6 +68,13 @@ export const SCORE = {
   stageMultiplierStep: 0.25,
   /** ステージクリアボーナス（× ステージ番号） */
   clearBonusPerStage: 500,
+  /**
+   * コンボボーナス: ハズレなしで続けて当てると、1 回ごとに得点倍率がこれだけ上がる
+   * （1 回目 ×1.0、2 回目 ×1.1 …）。ハズレで ×1.0 に戻る
+   */
+  comboStep: 0.1,
+  /** コンボボーナスの上限倍率 */
+  comboMax: 2,
 } as const;
 
 /** 1 ステージの設定 */

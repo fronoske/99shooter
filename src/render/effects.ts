@@ -3,7 +3,7 @@
  * - U4・P4: 倒した雲がふくらんで晴れ、お花ときらきらが弾ける
  * - P1: 命中した場所に式（7 × 8 = 56）を大きく出す
  * - P2: 式の下にほめことば
- * - P3: ハズレなしで 3 回以上続けて当てると「3 れんぞく！」。お花も増える（得点は変えない）
+ * - P3: ハズレなしで 3 回以上続けて当てると「3 れんぞく！」と、コンボボーナスの倍率（とくてん ×1.2）。お花も増える
  * - P6: ハズレの玉が雲を通り抜けるとき、雲と玉が「ぽよん」と揺れる
  * - U5: 得点の数字が上のバーへ飛んでいき、着いたら得点が数え上がる
  * - P11: ステージクリアで花びらが降り、ハズレの少なさで星（★1〜3）がつく
@@ -14,6 +14,7 @@
 import { LAYOUT, VIEW } from "../config";
 import type { Enemy, FlyingBall, Game } from "../game/game";
 import type { Rng } from "../game/rng";
+import { comboMultiplier } from "../game/scoring";
 import { drawCloud, drawFlower, drawSparkle, outlinedText } from "./sprites";
 import { FONT, THEME } from "./theme";
 
@@ -165,8 +166,9 @@ export class Effects {
     this.stageMisses++;
   }
 
-  onHit(enemy: Enemy, points: number, ball: FlyingBall): void {
-    this.streak++;
+  /** streak はゲームが数えたれんぞく回数（省略すると自分で数える） */
+  onHit(enemy: Enemy, points: number, ball: FlyingBall, streak?: number): void {
+    this.streak = streak ?? this.streak + 1;
     const cx = enemy.x;
     const cy = enemy.y + LAYOUT.enemyHeight / 2;
 
@@ -200,8 +202,9 @@ export class Effects {
     if (this.streak >= EFFECT.streakMin) {
       this.popups.push({
         text: `${this.streak} れんぞく！`,
-        sub: "",
-        subColor: "",
+        // コンボボーナスの倍率。続けるほど得をすることが分かるように
+        sub: `とくてん ×${comboMultiplier(this.streak).toFixed(1)}`,
+        subColor: THEME.scoreText,
         x: VIEW.width / 2,
         y: LAYOUT.defenseLineY - 40,
         age: 0,

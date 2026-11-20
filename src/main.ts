@@ -50,7 +50,7 @@ const game = new Game(undefined, {
     ui.effects.onThrow();
   },
   onHit: (enemy, points, ball) => {
-    ui.effects.onHit(enemy, points, ball);
+    ui.effects.onHit(enemy, points, ball, game.streak);
     audio.sfx("hit", ui.effects.streak);
     if (isStreakMilestone(ui.effects.streak)) audio.sfx("streak", ui.effects.streak);
     vibrator.play("hit");

@@ -5,6 +5,18 @@ export interface ScoreConfig {
   heightBonusMax: number;
   stageMultiplierStep: number;
   clearBonusPerStage: number;
+  comboStep: number;
+  comboMax: number;
+}
+
+/**
+ * コンボボーナスの倍率。streak は今の命中を含めた、ハズレなしで続けて当てた回数。
+ * 1 回目は ×1.0、そこから 1 回ごとに comboStep ずつ上がり、comboMax で止まる
+ */
+export function comboMultiplier(streak: number, cfg: ScoreConfig = SCORE): number {
+  const m = 1 + Math.max(0, streak - 1) * cfg.comboStep;
+  // 0.1 刻みの小数の誤差をなくす
+  return Math.min(cfg.comboMax, Math.round(m * 100) / 100);
 }
 
 /** ステージの得点倍率 */

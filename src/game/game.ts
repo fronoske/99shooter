@@ -3,7 +3,7 @@ import { ensureCorrectBall, fillStock, type BallStock } from "./balls";
 import { ballSlotPos, laneCenterX, LAUNCH_POS } from "./layout";
 import { generateProblem, makeProblem, problemKey, type Problem } from "./problems";
 import { defaultRng, pick, type Rng } from "./rng";
-import { clearBonus, defeatScore } from "./scoring";
+import { clearBonus, comboMultiplier, defeatScore } from "./scoring";
 
 export type Phase = "title" | "settings" | "playing" | "paused" | "stageClear" | "gameOver";
 
@@ -58,6 +58,8 @@ export class Game {
   stage = 1;
   score = 0;
   difficulty: Difficulty = "easy";
+  /** ハズレなしで続けて当てた回数（コンボ）。ステージをまたいで続き、ハズレか新しいゲームで 0 に戻る */
+  streak = 0;
   params: StageParams = stageParams(1);
   enemies: Enemy[] = [];
   spawnedCount = 0;
@@ -84,6 +86,7 @@ export class Game {
   startNewGame(difficulty: Difficulty = this.difficulty): void {
     this.difficulty = difficulty;
     this.score = 0;
+    this.streak = 0;
     this.startStage(1);
   }
 
@@ -358,6 +361,7 @@ export class Game {
     if (b.t >= 1) {
       this.flying = null;
       this.refill();
+      this.streak = 0;
       this.events.onMiss?.();
     }
   }
@@ -375,7 +379,10 @@ export class Game {
     const ball = this.flying!;
     this.flying = null;
     this.enemies = this.enemies.filter((e) => e !== enemy);
-    const points = defeatScore(enemy.y + LAYOUT.enemyHeight / 2, this.stage, this.params.scoreMultiplier);
+    this.streak++;
+    // 得点 = 高さ・ステージ・難易度・コンボボーナスの倍率をかけたもの
+    const multiplier = this.params.scoreMultiplier * comboMultiplier(this.streak);
+    const points = defeatScore(enemy.y + LAYOUT.enemyHeight / 2, this.stage, multiplier);
     this.score += points;
     this.defeatedCount++;
     this.events.onHit?.(enemy, points, ball);

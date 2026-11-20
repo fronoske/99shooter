@@ -1,6 +1,7 @@
 import { BALL, DIFFICULTY, LAYOUT, VIEW } from "../config";
 import type { Game, Phase } from "../game/game";
 import { PLAYER_POS } from "../game/layout";
+import { comboMultiplier } from "../game/scoring";
 import type { Settings } from "../settings";
 import { pauseMenuButtons, settingsLayout, titleButtons, type Button } from "../ui/buttons";
 import type { BallView } from "./ballView";
@@ -251,6 +252,8 @@ export class Renderer {
     ctx.fillRect(0, LAYOUT.hudHeight - 2, VIEW.width, 2);
     this.text(`ステージ ${game.stage}`, 10, 20, 16, THEME.text, "left");
     this.text(`${game.defeatedCount} / ${game.params.enemiesToClear}`, 140, 20, 16, THEME.text);
+    // コンボボーナスの倍率（2 回以上続けて当てている間）
+    if (game.streak >= 2) this.text(`×${comboMultiplier(game.streak).toFixed(1)}`, 200, 20, 15, THEME.pink);
     // 得点は、飛んできた数字が着くと数え上がり、ぴょこっと大きくなる（U5）
     const bump = 1 + ui.effects.scoreBump * 0.8;
     ctx.save();
