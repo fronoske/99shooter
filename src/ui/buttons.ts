@@ -1,4 +1,4 @@
-import { DIFFICULTIES, DIFFICULTY, VIEW } from "../config";
+import { DIFFICULTIES, DIFFICULTY, LAYOUT, VIEW } from "../config";
 import type { Settings } from "../settings";
 
 /** 画面上のボタン（論理座標、左上基準） */
@@ -52,7 +52,8 @@ export function titleButtons(): Button[] {
 
 /** プレイ画面右上のポーズボタン（上のバーの中。玉から離して押し間違いを防ぐ） */
 export function pauseButton(): Button {
-  return { id: "pause", x: VIEW.width - 48, y: 2, w: 44, h: 36, label: "" };
+  // 上のバー全体（ボタンの絵は出さない）。雲や玉とは離れているので押し間違えにくい（演出 C2）
+  return { id: "pause", x: 0, y: 0, w: VIEW.width, h: LAYOUT.hudHeight, label: "" };
 }
 
 /** ポーズ画面のボタン。「やめる」は小さく地味にして押し間違いを防ぐ */
@@ -81,7 +82,7 @@ export function settingsLayout(
   const rows: SettingRow[] = [
     { label: "むずかしさ", y: 120 },
     { label: "こうかおん", y: 236 },
-    { label: "BGM", y: 336, note: "（BGM は じゅんびちゅう）" },
+    { label: "BGM", y: 336 },
     {
       label: "バイブレーション",
       y: 436,

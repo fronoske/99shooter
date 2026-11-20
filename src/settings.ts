@@ -3,7 +3,7 @@ import { DIFFICULTIES, type Difficulty } from "./config";
 /** プレイヤーが設定画面で変えられる設定 */
 export interface Settings {
   difficulty: Difficulty;
-  /** BGM（BGM 自体は未実装。設定の保存のみ） */
+  /** BGM */
   bgm: boolean;
   /** 効果音 */
   se: boolean;

@@ -1,7 +1,7 @@
 import "./style.css";
-import { SoundPlayer } from "./audio/sound";
+import { AudioEngine } from "./audio/engine";
 import { Vibrator, vibrationSupported } from "./audio/vibration";
-import { Game } from "./game/game";
+import { Game, type Phase } from "./game/game";
 import { BallView } from "./render/ballView";
 import { Effects } from "./render/effects";
 import { Renderer, type UiState } from "./render/renderer";
@@ -22,7 +22,7 @@ const MAX_DT = 1 / 20;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderer = new Renderer(canvas);
-const sound = new SoundPlayer();
+const audio = new AudioEngine();
 const vibrator = new Vibrator();
 
 const ui: UiState = {
@@ -34,37 +34,64 @@ const ui: UiState = {
 
 function applySettings(s: Settings): void {
   ui.settings = s;
-  sound.enabled = s.se;
+  audio.setSfxEnabled(s.se);
+  audio.setBgmEnabled(s.bgm);
   vibrator.enabled = s.vibration;
 }
 applySettings(ui.settings);
 
+/** れんぞくの節目（この回数で特別な効果音） */
+const isStreakMilestone = (n: number) => n === 3 || (n >= 5 && n % 5 === 0);
+
+let prevPhase: Phase = "title";
 const game = new Game(undefined, {
   onThrow: () => {
-    sound.play("throw");
+    audio.sfx("throw");
     ui.effects.onThrow();
   },
   onHit: (enemy, points, ball) => {
-    sound.play("hit");
-    vibrator.play("hit");
     ui.effects.onHit(enemy, points, ball);
+    audio.sfx("hit", ui.effects.streak);
+    if (isStreakMilestone(ui.effects.streak)) audio.sfx("streak", ui.effects.streak);
+    vibrator.play("hit");
   },
   onMiss: () => {
-    sound.play("miss");
+    audio.sfx("miss");
     ui.effects.onMiss();
   },
   onStageStart: () => {
     ui.balls.reset();
     ui.effects.onStageStart(game.score);
+    audio.sfx("start");
   },
   onPhaseChange: (phase) => {
-    if (phase === "stageClear") sound.play("clear");
-    if (phase === "gameOver") {
-      sound.play("gameOver");
-      vibrator.play("gameOver");
+    // BGM の切り替え（演出 A1）
+    switch (phase) {
+      case "title":
+        audio.playMusic("title");
+        break;
+      case "playing":
+        if (prevPhase === "paused") audio.resumeMusic();
+        else audio.playMusic("stage", game.stage);
+        break;
+      case "paused":
+        audio.pauseMusic();
+        break;
+      case "stageClear":
+        audio.stopMusic();
+        audio.sfx("clear");
+        break;
+      case "gameOver":
+        audio.stopMusic();
+        audio.sfx("gameOver");
+        vibrator.play("gameOver");
+        break;
     }
+    prevPhase = phase;
   },
 });
+// タイトルの曲。音は最初のタップのあとに鳴り始める
+audio.playMusic("title");
 
 // ほかのアプリに切り替えた・画面が消えたときは自動でポーズする
 document.addEventListener("visibilitychange", () => {
@@ -77,16 +104,17 @@ window.addEventListener("resize", () => renderer.resize());
 canvas.addEventListener("pointerdown", (ev) => {
   ev.preventDefault();
   // 音はユーザー操作の中でないと鳴らせないブラウザがあるため、毎回ここで有効化する
-  sound.unlock();
+  audio.unlock();
+  audio.startPendingMusic();
   const { x, y } = renderer.toLogical(ev.clientX, ev.clientY);
   switch (game.phase) {
     case "title": {
       const b = hitButton(titleButtons(), x, y);
       if (b?.id === "start") {
-        sound.play("tap");
+        audio.sfx("tap");
         game.startNewGame(ui.settings.difficulty);
       } else if (b?.id === "settings") {
-        sound.play("tap");
+        audio.sfx("tap");
         game.openSettings();
       }
       break;
@@ -95,7 +123,7 @@ canvas.addEventListener("pointerdown", (ev) => {
       const b = hitButton(settingsLayout(ui.settings, vibrationSupported).buttons, x, y);
       if (b === null) break;
       if (b.id === "back") {
-        sound.play("tap");
+        audio.sfx("tap");
         game.backToTitle();
         break;
       }
@@ -105,13 +133,13 @@ canvas.addEventListener("pointerdown", (ev) => {
       // 保存は設定を変えたときだけ（起動時に保存すると、既定値を後で変えても反映されなくなる）
       saveSettings(next);
       // オンにした直後に確認できるよう、変更後の設定で鳴らす・震わせる
-      sound.play("tap");
+      audio.sfx("tap");
       if (b.id === "vibration:on") vibrator.play("hit");
       break;
     }
     case "playing": {
       if (hitButton([pauseButton()], x, y)) {
-        sound.play("tap");
+        audio.sfx("tap");
         game.pause();
         break;
       }
@@ -130,10 +158,10 @@ canvas.addEventListener("pointerdown", (ev) => {
     case "paused": {
       const b = hitButton(pauseMenuButtons(), x, y);
       if (b?.id === "resume") {
-        sound.play("tap");
+        audio.sfx("tap");
         game.resume();
       } else if (b?.id === "quit") {
-        sound.play("tap");
+        audio.sfx("tap");
         game.quit();
       }
       break;
@@ -153,7 +181,11 @@ function frame(now: number): void {
   last = now;
   game.update(dt);
   // ポーズ中などは玉の転がりも止める
-  if (game.phase === "playing") ui.balls.update(dt, game.stock);
+  if (game.phase === "playing") {
+    ui.balls.update(dt, game.stock);
+    // 倒した数に合わせて BGM の楽器が増える
+    audio.setIntensity(game.defeatedCount / game.params.enemiesToClear);
+  }
   if (game.phase !== "paused") ui.effects.update(dt, game);
   renderer.draw(game, ui);
   requestAnimationFrame(frame);

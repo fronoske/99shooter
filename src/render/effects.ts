@@ -64,7 +64,7 @@ const PRAISE_HIGH = ["かんぺき！", "てんさい！", "すごすぎる！"]
 const FLOWER_COLORS = ["#ff8fb8", "#ffb3cf", "#ffffff", "#ffd166", "#d9c8ff"];
 
 /** 上のバーの得点の位置（飛んでいく先） */
-export const SCORE_POS = { x: VIEW.width - 80, y: 20 } as const;
+export const SCORE_POS = { x: VIEW.width - 50, y: 20 } as const;
 
 interface Particle {
   kind: "flower" | "sparkle";

@@ -1,14 +1,13 @@
 import { BALL, DIFFICULTY, LAYOUT, VIEW } from "../config";
 import type { Game, Phase } from "../game/game";
 import { PLAYER_POS } from "../game/layout";
-import { ALL_PRODUCTS } from "../game/problems";
 import type { Settings } from "../settings";
-import { pauseButton, pauseMenuButtons, settingsLayout, titleButtons, type Button } from "../ui/buttons";
+import { pauseMenuButtons, settingsLayout, titleButtons, type Button } from "../ui/buttons";
 import type { BallView } from "./ballView";
 import { STAR_MESSAGES, starsForMisses, type Effects } from "./effects";
 import { enemyMotion, girlMotion, maxDanger, MOTION } from "./motion";
 import { drawCandy, drawCloud, drawGirl, drawSparkle, drawStar, outlinedText, type GirlPose } from "./sprites";
-import { FONT, stageBackground, STAGE_BACKGROUNDS, THEME, type StageBackground } from "./theme";
+import { candyColorIndex, FONT, stageBackground, STAGE_BACKGROUNDS, THEME, type StageBackground } from "./theme";
 
 /** 描画に必要なゲーム外の状態 */
 export interface UiState {
@@ -51,14 +50,6 @@ const HELD_SCALE = 0.6;
 /** 手から離れて元の大きさに戻るまでの時間（秒） */
 const GROW_TIME = 0.15;
 
-/**
- * キャンディの色番号。数字から決めるので、同じ玉は飛んでいる間も同じ色のまま。
- * 九九の答えを小さい順に並べ、色を順番に割り当てる（近い数字どうしは別の色になる）。
- */
-const CANDY_COLOR_OF = new Map(ALL_PRODUCTS.map((v, i) => [v, i % 3]));
-function candyColor(value: number): number {
-  return CANDY_COLOR_OF.get(value) ?? value % 3;
-}
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
@@ -230,7 +221,7 @@ export class Renderer {
     // 玉ストック（キャンディ）。位置は転がる動きを含めた見た目の位置（演出 U1）
     const canThrow = game.canThrow;
     for (const b of ui.balls.sprites(game.stock)) {
-      drawCandy(ctx, b.x, b.y, LAYOUT.ballRadius, candyColor(b.value), b.value, !canThrow, b.angle);
+      drawCandy(ctx, b.x, b.y, LAYOUT.ballRadius, candyColorIndex(b.value), b.value, !canThrow, b.angle);
     }
 
     // 飛んでいる玉
@@ -248,7 +239,7 @@ export class Renderer {
         angle = fly * 6 * Math.sign(f.curve);
         if (f.targetId === null) scale *= ui.effects.ballScale();
       }
-      drawCandy(ctx, f.x, f.y, LAYOUT.ballRadius, candyColor(f.value), f.value, false, angle, scale);
+      drawCandy(ctx, f.x, f.y, LAYOUT.ballRadius, candyColorIndex(f.value), f.value, false, angle, scale);
     }
   }
 
@@ -263,22 +254,20 @@ export class Renderer {
     // 得点は、飛んできた数字が着くと数え上がり、ぴょこっと大きくなる（U5）
     const bump = 1 + ui.effects.scoreBump * 0.8;
     ctx.save();
-    ctx.translate(VIEW.width - 58, 20);
+    ctx.translate(VIEW.width - 26, 20);
     ctx.scale(bump, bump);
     this.text(`${ui.effects.displayScore(game)} てん`, 0, 0, 16, THEME.scoreText, "right");
     ctx.restore();
 
     if (showPauseButton) {
-      const b = pauseButton();
-      this.drawButtonShape(b, THEME.button, true);
-      // 一時停止アイコン（まるい縦棒 2 本）
-      ctx.fillStyle = THEME.text;
-      const cx = b.x + b.w / 2;
-      const cy = b.y + b.h / 2;
+      // ポーズはバー全体をタップ。ボタンの絵は出さず、右端に小さな目印だけ出す
+      ctx.fillStyle = THEME.note;
+      ctx.globalAlpha = 0.5;
       ctx.beginPath();
-      ctx.roundRect(cx - 8, cy - 9, 5, 18, 2.5);
-      ctx.roundRect(cx + 3, cy - 9, 5, 18, 2.5);
+      ctx.roundRect(VIEW.width - 17, 13, 3.5, 14, 1.75);
+      ctx.roundRect(VIEW.width - 11, 13, 3.5, 14, 1.75);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
   }
 

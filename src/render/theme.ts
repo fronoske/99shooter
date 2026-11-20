@@ -60,7 +60,7 @@ export const CLOUD_COLORS = [
   { body: "#ffd6e0", shade: "#f5b3c4" }, // ピーチ
 ] as const;
 
-/** 玉（キャンディ）の色 */
+/** 玉（キャンディ）の色。番号は candyColorIndex で決める（小さい数 → 大きい数の順） */
 export const CANDY_COLORS = [
   { body: "#ff9ec4", shade: "#f27aa9" }, // ピンク
   { body: "#f2c98f", shade: "#deaa66" }, // こむぎいろ
@@ -101,4 +101,16 @@ export const STAGE_BACKGROUNDS: readonly StageBackground[] = [
 export function stageBackground(stage: number): StageBackground {
   const n = STAGE_BACKGROUNDS.length;
   return STAGE_BACKGROUNDS[(((stage - 1) % n) + n) % n];
+}
+
+/**
+ * キャンディの色で数の大きさを表す（演出 C1）。この値以下ならその色。
+ * 1〜20 ピンク、21〜40 こむぎいろ、41〜81 ミント
+ */
+export const CANDY_BANDS = [20, 40, 81] as const;
+
+/** 数字から CANDY_COLORS の番号を決める */
+export function candyColorIndex(value: number): number {
+  const i = CANDY_BANDS.findIndex((max) => value <= max);
+  return i < 0 ? CANDY_BANDS.length - 1 : i;
 }
