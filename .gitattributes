@@ -1,0 +1,127 @@
+# Set default behavior to automatically normalize line endings.
+* text=auto
+
+# Force Windows-only scripts to use CRLF line endings.
+*.cmd           text eol=crlf
+*.CMD           text eol=crlf
+*.bat           text eol=crlf
+*.BAT           text eol=crlf
+*.ps1           text eol=crlf
+*.PS1           text eol=crlf
+*.vbs           text eol=crlf
+*.VBS           text eol=crlf
+*.wsf           text eol=crlf
+*.WSF           text eol=crlf
+
+# Force bash scripts to always use LF line endings so that if a repo is accessed
+# in Unix via a file share from Windows, the scripts will work.
+*.sh            text eol=lf
+
+
+# OS-independent text
+*.c             text
+*.h             text
+*.cpp           text
+*.hpp           text
+*.dita          text
+*.ditamap       text
+*.ditaval       text
+*.htm           text
+*.html          text
+*.css           text
+*.xsl           text
+*.md            text eol=lf
+*.markdown      text eol=lf
+*.json          text eol=lf
+*.mjs           text eol=lf
+*.ts            text eol=lf
+*.user.js       text eol=lf
+*.xml           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.rb            text
+*.py            text
+*.txt           text eol=lf
+*.TXT           text eol=lf
+*.csv           text
+*.sln           text eol=lf merge=binary
+*.csproj        text eol=lf merge=binary
+*.csproj.user   text eol=lf merge=binary
+*.cs            text eol=lf
+*.bas           text eol=lf linguist-language=VBA
+*.cls           text eol=lf linguist-language=VBA
+*.frm           text eol=lf
+*.dcm           text eol=lf linguist-language=VBA
+*.vbaproj       text eol=lf linguist-language=INI
+*.frx           binary
+*.js            text eol=lf
+*.jsx           text eol=lf
+*.tsx           text eol=lf
+*.java          text
+*.lua           text
+*.svg           text
+*.doxygen       text
+*.editorconfig  text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+.npmrc          text eol=lf
+
+
+# Explicitly identify binary files
+*.chm           binary
+*.CHM           binary
+*.xls           binary
+*.XLS           binary
+*.xlsx          binary
+*.XLSX          binary
+*.xlsm          binary
+*.XLSM          binary
+*.doc           binary
+*.DOC           binary
+*.docx          binary
+*.DOCX          binary
+*.docm          binary
+*.DOCM          binary
+*.rtf           binary
+*.RTF           binary
+*.ppt           binary
+*.PPT           binary
+*.pptx          binary
+*.PPTX          binary
+*.vsd           binary
+*.vsdx          binary
+*.pdf           binary
+*.PDF           binary
+*.png           binary
+*.PNG           binary
+*.psd           binary
+*.PSD           binary
+*.jpg           binary
+*.JPG           binary
+*.jpeg          binary
+*.JPEG          binary
+*.gif           binary
+*.GIF           binary
+*.mp4           binary
+*.MP4           binary
+*.mov           binary
+*.MOV           binary
+*.dll           binary
+*.DLL           binary
+*.exe           binary
+*.EXE           binary
+*.pdb           binary
+*.nupkg         binary
+*.zip           binary
+*.ZIP           binary
+*.7z            binary
+*.tar           binary
+*.tgz           binary
+*.gz            binary
+*.bz            binary
+*.xz            binary
+*.p7s           binary
+*.svnExe        binary
+*.svnDll        binary
+*.vsidx         binary
+*.lnk           binary
