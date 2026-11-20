@@ -4,6 +4,8 @@
 
 上から降りてくる敵が九九の問題（例: `8 × 9`）を持っています。画面下に並んだ玉から答えの数字を選んでタップすると、玉が敵めがけて飛んでいき、正解なら敵を倒せます。敵が防衛ラインまで降りてくるとゲームオーバー、規定数（20 匹）倒すとステージクリアです。
 
+**遊ぶ**: https://fronoske.github.io/99shooter/ （スマートフォンのブラウザで開いてください）
+
 ## 遊び方
 
 1. タイトル画面の「スタート」でゲーム開始（「せってい」で、むずかしさ・効果音・BGM・バイブレーションを変えられる）
@@ -51,6 +53,16 @@ npm run build
 npm run preview
 ```
 
+## 公開（GitHub Pages）
+
+`main` ブランチに push すると、GitHub Actions（`.github/workflows/deploy.yml`）が テスト → ビルド → 公開 を自動で行います。テストかビルドが失敗したときは公開しません。
+
+- 公開先: https://fronoske.github.io/99shooter/
+- 実行状況はリポジトリの「Actions」タブで確認できます
+- 手動で公開し直すときは、「Actions」タブの「Deploy to GitHub Pages」から「Run workflow」を押します
+
+別のリポジトリで同じように公開するときは、リポジトリの「Settings」→「Pages」で、公開元（Source）を「GitHub Actions」にします。
+
 ## テスト
 
 ```powershell
@@ -79,6 +91,7 @@ npm run typecheck
 | `src/audio/` | 効果音（仮）とバイブレーション |
 | `src/main.ts` | 起動処理・入力処理・ゲームループ |
 | `test/` | ユニットテスト（Vitest） |
+| `.github/workflows/deploy.yml` | GitHub Pages への自動公開 |
 | `docs/requirements.md` | 要件定義 |
 | `docs/presentation.md` | 演出設計（見た目・アニメーション・音） |
 | `docs/custom-images.md` | キャラクター画像の差し替え仕様 |
