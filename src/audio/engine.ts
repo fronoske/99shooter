@@ -29,6 +29,11 @@ export const MIX = {
   /** ハズレのときに BGM を下げる割合と、戻るまでの時間（秒） */
   duck: 0.4,
   duckTime: 0.45,
+  /**
+   * スタートしたときに BGM を止めておく時間（秒）。タイトルの曲をぴたっと止めて、
+   * 合図の音のあとにステージの曲を始めると「スタートした！」感じが出る
+   */
+  startGap: 0.7,
 } as const;
 
 const LOOKAHEAD = 0.12;
@@ -113,14 +118,30 @@ export class AudioEngine {
 
   // ---------------------------------------------------------------- BGM
 
-  /** 曲を最初から鳴らす。同じ曲がすでに鳴っていれば何もしない（stage は更新する） */
-  playMusic(mode: MusicMode, stage = 1): void {
+  /**
+   * 曲を最初から鳴らす。同じ曲がすでに鳴っていれば何もしない（stage は更新する）。
+   * gap 秒を指定すると、今の曲をすぐ消して、その間は無音にしてから始める
+   */
+  playMusic(mode: MusicMode, stage = 1, gap = 0): void {
     this.stage = stage;
     if (this.mode === mode && this.playing) return;
     this.mode = mode;
     this.step = 0;
     this.intensity = 0;
-    this.startScheduler();
+    if (gap > 0) this.silence(gap);
+    this.startScheduler(gap);
+  }
+
+  /** 先に予約済みの音も含めて BGM をすぐ消し、gap 秒後に元の音量へ戻す */
+  private silence(gap: number): void {
+    if (!this.ctx || !this.bgmEnabled) return;
+    const t = this.ctx.currentTime;
+    const g = this.bgmBus.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(0, t + 0.05);
+    g.setValueAtTime(0, t + gap);
+    g.linearRampToValueAtTime(MIX.bgm, t + gap + 0.02);
   }
 
   /** ステージで倒した数の割合（0〜1）。楽器の増え方に使う */
@@ -142,11 +163,11 @@ export class AudioEngine {
     this.mode = null;
   }
 
-  private startScheduler(): void {
+  private startScheduler(delay = 0): void {
     this.stopScheduler();
     this.playing = true;
     if (!this.ctx) return; // unlock 後に tick が始まる
-    this.nextStepTime = this.ctx.currentTime + 0.06;
+    this.nextStepTime = this.ctx.currentTime + 0.06 + delay;
     this.timer = setInterval(() => this.tick(), TICK_MS);
     this.tick();
   }
@@ -221,7 +242,11 @@ export class AudioEngine {
         this.duckBgm(t);
         break;
       case "start":
-        [72, 76, 79].forEach((m, i) => this.voice("bell", m, 0.45, t + i * 0.07, out));
+        // スタートの合図: ド・ミ・ソ と上がって、最後に「ジャン」（BGM が止まっている間に鳴る）
+        [72, 76, 79].forEach((m, i) => this.voice("bell", m, 0.45, t + i * 0.08, out));
+        this.voice("marimba", 84, 0.7, t + 0.26, out, 0.4);
+        this.voice("bell", 84, 0.4, t + 0.26, out, 0.6);
+        this.voice("kick", 0, 0.6, t + 0.26, out);
         break;
       case "clear": {
         // ファンファーレ: ド・ミ・ソ・ド → 和音

@@ -1,5 +1,5 @@
 import "./style.css";
-import { AudioEngine } from "./audio/engine";
+import { AudioEngine, MIX } from "./audio/engine";
 import { Vibrator, vibrationSupported } from "./audio/vibration";
 import { Game, type Phase } from "./game/game";
 import { BallView } from "./render/ballView";
@@ -72,7 +72,8 @@ const game = new Game(undefined, {
         break;
       case "playing":
         if (prevPhase === "paused") audio.resumeMusic();
-        else audio.playMusic("stage", game.stage);
+        // スタート・次のステージは、一瞬 BGM を止めて合図の音を聞かせてから始める
+        else audio.playMusic("stage", game.stage, MIX.startGap);
         break;
       case "paused":
         audio.pauseMusic();
