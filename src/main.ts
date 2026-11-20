@@ -34,8 +34,8 @@ const ui: UiState = {
 
 function applySettings(s: Settings): void {
   ui.settings = s;
-  audio.setSfxEnabled(s.se);
-  audio.setBgmEnabled(s.bgm);
+  audio.setSfxVolume(s.seVolume);
+  audio.setBgmVolume(s.bgmVolume);
   vibrator.enabled = s.vibration;
 }
 applySettings(ui.settings);
@@ -133,8 +133,10 @@ canvas.addEventListener("pointerdown", (ev) => {
       applySettings(next);
       // 保存は設定を変えたときだけ（起動時に保存すると、既定値を後で変えても反映されなくなる）
       saveSettings(next);
-      // オンにした直後に確認できるよう、変更後の設定で鳴らす・震わせる
-      audio.sfx("tap");
+      // 変えた直後に確認できるよう、変更後の設定で鳴らす・震わせる
+      // （効果音の音量は、命中の音で大きさを確かめられるようにする。BGM はタイトルの曲で確かめられる）
+      if (b.id.startsWith("seVolume:")) audio.sfx("hit", 1);
+      else audio.sfx("tap");
       if (b.id === "vibration:on") vibrator.play("hit");
       break;
     }

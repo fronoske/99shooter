@@ -1,5 +1,5 @@
 import { DIFFICULTIES, DIFFICULTY, LAYOUT, VIEW } from "../config";
-import type { Settings } from "../settings";
+import { VOLUME_LEVELS, type Settings, type VolumeLevel } from "../settings";
 
 /** 画面上のボタン（論理座標、左上基準） */
 export interface Button {
@@ -66,6 +66,13 @@ export function pauseMenuButtons(): Button[] {
 
 const ON_OFF = ["オン", "オフ"];
 
+/** 音量の 6 段階のボタン。0 は「オフ」と書く */
+function volumeRow(key: string, value: VolumeLevel, y: number): Button[] {
+  const ids = VOLUME_LEVELS.map((v) => `${key}:${v}`);
+  const labels = VOLUME_LEVELS.map((v) => (v === 0 ? "オフ" : String(v)));
+  return row(ids, labels, y, 48, 6).map((b, i) => ({ ...b, selected: VOLUME_LEVELS[i] === value }));
+}
+
 function toggleRow(key: string, value: boolean, y: number, disabled = false): Button[] {
   return row([`${key}:on`, `${key}:off`], ON_OFF, y, 140, 20).map((b, i) => ({
     ...b,
@@ -98,8 +105,8 @@ export function settingsLayout(
       8,
       50,
     ).map((b, i) => ({ ...b, selected: DIFFICULTIES[i] === s.difficulty })),
-    ...toggleRow("se", s.se, 258),
-    ...toggleRow("bgm", s.bgm, 358),
+    ...volumeRow("seVolume", s.seVolume, 258),
+    ...volumeRow("bgmVolume", s.bgmVolume, 358),
     ...toggleRow("vibration", s.vibration, 458, !vibrationSupported),
     centered("back", 560, 220, 50, "もどる", true),
   ];
@@ -117,10 +124,13 @@ export function applySettingButton(s: Settings, id: string): Settings | null {
       return DIFFICULTIES.includes(value as Settings["difficulty"])
         ? { ...s, difficulty: value as Settings["difficulty"] }
         : null;
-    case "se":
-    case "bgm":
+    case "seVolume":
+    case "bgmVolume": {
+      const v = Number(value);
+      return (VOLUME_LEVELS as readonly number[]).includes(v) ? { ...s, [key]: v as VolumeLevel } : null;
+    }
     case "vibration":
-      return { ...s, [key]: value === "on" };
+      return { ...s, vibration: value === "on" };
     default:
       return null;
   }

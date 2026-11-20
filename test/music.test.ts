@@ -67,3 +67,12 @@ describe("candy color", () => {
     expect([42, 81].map(candyColorIndex)).toEqual([2, 2]);
   });
 });
+
+describe("volume", () => {
+  it("0 は無音、3 が標準、段階が上がるほど大きい", async () => {
+    const { volumeGain } = await import("../src/audio/engine");
+    expect(volumeGain(0)).toBe(0);
+    expect(volumeGain(3)).toBe(1);
+    for (let l = 1; l < 5; l++) expect(volumeGain(l + 1)).toBeGreaterThan(volumeGain(l));
+  });
+});

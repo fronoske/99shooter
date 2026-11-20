@@ -22,6 +22,7 @@ import {
 /** 音量の調整値 */
 export const MIX = {
   master: 0.8,
+  /** 音量の設定が 3（標準）のときの BGM・効果音の音量 */
   bgm: 0.32,
   sfx: 0.7,
   /** オルゴール・効果音にかける響き（リバーブ）の量 */
@@ -36,6 +37,15 @@ export const MIX = {
   startGap: 0.7,
 } as const;
 
+/**
+ * 設定の音量段階（0〜5）を音量の倍率にする。3 が標準（MIX の値そのまま）。
+ * 1 段で約 4.5dB ずつ変わる（耳で聞いて同じくらいずつ変わるよう、掛け算で変える）
+ */
+export function volumeGain(level: number): number {
+  if (level <= 0) return 0;
+  return 2 ** ((Math.min(5, level) - 3) * 0.75);
+}
+
 const LOOKAHEAD = 0.12;
 const TICK_MS = 25;
 
@@ -49,8 +59,9 @@ export class AudioEngine {
   private reverb!: ConvolverNode;
   private noise!: AudioBuffer;
 
-  private bgmEnabled = true;
-  private sfxEnabled = true;
+  /** BGM・効果音の音量（MIX の値に volumeGain を掛けたもの） */
+  private bgmGain = MIX.bgm * volumeGain(3);
+  private sfxGain = MIX.sfx * volumeGain(3);
 
   private mode: MusicMode | null = null;
   private stage = 1;
@@ -79,12 +90,19 @@ export class AudioEngine {
   private setup(ctx: AudioContext): void {
     this.master = ctx.createGain();
     this.master.gain.value = MIX.master;
-    this.master.connect(ctx.destination);
+    // 音量を上げたときに音が割れないよう、最後にリミッター（コンプレッサー）を通す
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -6;
+    limiter.knee.value = 6;
+    limiter.ratio.value = 12;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.15;
+    this.master.connect(limiter).connect(ctx.destination);
     this.bgmBus = ctx.createGain();
-    this.bgmBus.gain.value = this.bgmEnabled ? MIX.bgm : 0;
+    this.bgmBus.gain.value = this.bgmGain;
     this.bgmBus.connect(this.master);
     this.sfxBus = ctx.createGain();
-    this.sfxBus.gain.value = this.sfxEnabled ? MIX.sfx : 0;
+    this.sfxBus.gain.value = this.sfxGain;
     this.sfxBus.connect(this.master);
 
     // 響き: 減衰するノイズを畳み込みに使う簡易リバーブ
@@ -106,14 +124,20 @@ export class AudioEngine {
     for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   }
 
-  setBgmEnabled(on: boolean): void {
-    this.bgmEnabled = on;
-    if (this.ctx) this.bgmBus.gain.setTargetAtTime(on ? MIX.bgm : 0, this.ctx.currentTime, 0.05);
+  /** BGM の音量（設定の 0〜5） */
+  setBgmVolume(level: number): void {
+    this.bgmGain = MIX.bgm * volumeGain(level);
+    if (this.ctx) {
+      const g = this.bgmBus.gain;
+      g.cancelScheduledValues(this.ctx.currentTime);
+      g.setTargetAtTime(this.bgmGain, this.ctx.currentTime, 0.05);
+    }
   }
 
-  setSfxEnabled(on: boolean): void {
-    this.sfxEnabled = on;
-    if (this.ctx) this.sfxBus.gain.setTargetAtTime(on ? MIX.sfx : 0, this.ctx.currentTime, 0.02);
+  /** 効果音の音量（設定の 0〜5） */
+  setSfxVolume(level: number): void {
+    this.sfxGain = MIX.sfx * volumeGain(level);
+    if (this.ctx) this.sfxBus.gain.setTargetAtTime(this.sfxGain, this.ctx.currentTime, 0.02);
   }
 
   // ---------------------------------------------------------------- BGM
@@ -134,14 +158,14 @@ export class AudioEngine {
 
   /** 先に予約済みの音も含めて BGM をすぐ消し、gap 秒後に元の音量へ戻す */
   private silence(gap: number): void {
-    if (!this.ctx || !this.bgmEnabled) return;
+    if (!this.ctx || this.bgmGain === 0) return;
     const t = this.ctx.currentTime;
     const g = this.bgmBus.gain;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
     g.linearRampToValueAtTime(0, t + 0.05);
     g.setValueAtTime(0, t + gap);
-    g.linearRampToValueAtTime(MIX.bgm, t + gap + 0.02);
+    g.linearRampToValueAtTime(this.bgmGain, t + gap + 0.02);
   }
 
   /** ステージで倒した数の割合（0〜1）。楽器の増え方に使う */
@@ -211,7 +235,7 @@ export class AudioEngine {
    */
   sfx(name: SfxName, streak = 0): void {
     const ctx = this.ctx;
-    if (!ctx || !this.sfxEnabled || ctx.state !== "running") return;
+    if (!ctx || this.sfxGain === 0 || ctx.state !== "running") return;
     const t = ctx.currentTime + 0.005;
     const out = this.sfxBus;
     const step = this.currentStep();
@@ -270,12 +294,12 @@ export class AudioEngine {
   }
 
   private duckBgm(t: number): void {
-    if (!this.ctx || !this.bgmEnabled) return;
+    if (!this.ctx || this.bgmGain === 0) return;
     const g = this.bgmBus.gain;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(MIX.bgm * MIX.duck, t + 0.04);
-    g.linearRampToValueAtTime(MIX.bgm, t + MIX.duckTime);
+    g.linearRampToValueAtTime(this.bgmGain * MIX.duck, t + 0.04);
+    g.linearRampToValueAtTime(this.bgmGain, t + MIX.duckTime);
   }
 
   // ---------------------------------------------------------------- 楽器

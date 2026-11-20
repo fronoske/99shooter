@@ -30,7 +30,7 @@ function memoryStorage(): Storage {
 describe("settings", () => {
   it("保存して読み込める", () => {
     const st = memoryStorage();
-    const s = { difficulty: "hard" as const, bgm: false, se: false, vibration: true };
+    const s = { difficulty: "hard" as const, bgmVolume: 0 as const, seVolume: 5 as const, vibration: true };
     saveSettings(s, st);
     expect(loadSettings(st)).toEqual(s);
   });
@@ -40,9 +40,20 @@ describe("settings", () => {
     expect(loadSettings(st)).toEqual(DEFAULT_SETTINGS);
     st.setItem("kuku-shooter.settings.v1", "{not json");
     expect(loadSettings(st)).toEqual(DEFAULT_SETTINGS);
-    expect(parseSettings({ difficulty: "extreme", se: "yes", bgm: false })).toEqual({
-      ...DEFAULT_SETTINGS,
-      bgm: false,
+    expect(parseSettings({ difficulty: "extreme", seVolume: 9, bgmVolume: 1.5 })).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it("音量の既定値はどちらも 3", () => {
+    expect(DEFAULT_SETTINGS.seVolume).toBe(3);
+    expect(DEFAULT_SETTINGS.bgmVolume).toBe(3);
+  });
+
+  it("以前のオン・オフの保存データは、オン = 3・オフ = 0 として引き継ぐ", () => {
+    expect(parseSettings({ difficulty: "normal", se: false, bgm: true, vibration: false })).toEqual({
+      difficulty: "normal",
+      seVolume: 0,
+      bgmVolume: 3,
+      vibration: false,
     });
   });
 });
@@ -51,16 +62,26 @@ describe("settings screen buttons", () => {
   it("ボタンで設定が変わる", () => {
     let s = { ...DEFAULT_SETTINGS };
     s = applySettingButton(s, "difficulty:easy")!;
-    s = applySettingButton(s, "se:off")!;
-    s = applySettingButton(s, "bgm:off")!;
-    expect(s).toEqual({ difficulty: "easy", se: false, bgm: false, vibration: true });
+    s = applySettingButton(s, "seVolume:5")!;
+    s = applySettingButton(s, "bgmVolume:0")!;
+    expect(s).toEqual({ difficulty: "easy", seVolume: 5, bgmVolume: 0, vibration: true });
     expect(applySettingButton(s, "back")).toBeNull();
+    expect(applySettingButton(s, "seVolume:6")).toBeNull();
   });
 
   it("選択中のボタンが現在の設定を表す", () => {
-    const { buttons } = settingsLayout({ ...DEFAULT_SETTINGS, difficulty: "hard", se: false }, true);
+    const { buttons } = settingsLayout({ ...DEFAULT_SETTINGS, difficulty: "hard", seVolume: 0 }, true);
     const selected = buttons.filter((b) => b.selected).map((b) => b.id);
-    expect(selected).toEqual(["difficulty:hard", "se:off", "bgm:on", "vibration:on"]);
+    expect(selected).toEqual(["difficulty:hard", "seVolume:0", "bgmVolume:3", "vibration:on"]);
+    // 音量は 0（オフ）〜 5 の 6 段階
+    expect(buttons.filter((b) => b.id.startsWith("bgmVolume:")).map((b) => b.label)).toEqual([
+      "オフ",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
   });
 
   it("バイブレーション非対応の端末では押せない", () => {
